@@ -10,7 +10,8 @@ from adventure import models, notifiers, repositories, serializers, usecases
 class CreateVehicleAPIView(APIView):
     def post(self, request: Request) -> Response:
         payload = request.data
-        vehicle_type = models.VehicleType.objects.get(name=payload["vehicle_type"])
+        vehicle_type = models.VehicleType.objects.get(name=payload[\
+            "vehicle_type"])
         vehicle = models.Vehicle.objects.create(
             name=payload["name"],
             passengers=payload["passengers"],
@@ -39,6 +40,22 @@ class StartJourneyAPIView(generics.CreateAPIView):
         try:
             usecase.execute()
         except usecases.StartJourney.CantStart as e:
+            raise ValidationError({"detail": str(e)})
+
+    def get_repository(self) -> repositories.JourneyRepository:
+        return repositories.JourneyRepository()
+
+class StopJourneyAPIView(generics.CreateAPIView):
+    serializer_class = serializers.JourneySerializer
+
+    def perform_create(self, serializer) -> None:
+        repo = self.get_repository()
+        usecase = usecases.StopJourney(repo).set_params(
+            serializer.validated_data
+        )
+        try:
+            usecase.execute()
+        except Exception as e:
             raise ValidationError({"detail": str(e)})
 
     def get_repository(self) -> repositories.JourneyRepository:
