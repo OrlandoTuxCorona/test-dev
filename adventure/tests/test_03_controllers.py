@@ -9,7 +9,6 @@ from .test_02_usecases import MockJourneyRepository
 # Tests #
 #########
 
-
 class TestRepository:
     def test_create_vehicle(self, mocker):
         mocker.patch.object(models.Vehicle.objects, "create")
@@ -45,6 +44,7 @@ class TestCreateVehicleAPIView:
         assert response.status_code == 201
 
 
+request_start  = "/api/adventure/start/"
 class TestStartJourneyAPIView:
     def test_api(self, client, mocker):
         mocker.patch.object(
@@ -54,7 +54,7 @@ class TestStartJourneyAPIView:
         )
 
         payload = {"name": "Kitt", "passengers": 2}
-        response = client.post("/api/adventure/start/", payload)
+        response = client.post(request_start, payload)
 
         assert response.status_code == 201
 
@@ -66,14 +66,41 @@ class TestStartJourneyAPIView:
         )
 
         payload = {"name": "Kitt", "passengers": 6}
-        response = client.post("/api/adventure/start/", payload)
+        response = client.post(request_start, payload)
 
         assert response.status_code == 400
 
-
-@pytest.mark.skip  # Remove
+@pytest.mark.django_db
 class TestStopJourneyAPIView:
-    def test_stop(self):
+    def test_stop(self, client, mocker):
         # TODO: Implement an endpoint that makes use of a StopJourney use case
         # and tests it
-        pass
+        mocker.patch.object(
+            views.StartJourneyAPIView,
+            "get_repository",
+            return_value=MockJourneyRepository(),
+        )
+
+        payload = {"name": "Kitt", "passengers": 2}
+        _ = client.post(request_start, payload)
+
+        mocker.patch.object(
+            views.StopJourneyAPIView,
+            "get_repository",
+            return_value=MockJourneyRepository(),
+        )
+        response = client.post("/api/adventure/stop/", payload)
+
+        assert response.status_code == 201
+    
+    def test_stop_fail(self, client, mocker):
+        mocker.patch.object(
+            views.StartJourneyAPIView,
+            "get_repository",
+            return_value=MockJourneyRepository(),
+        )
+
+        payload = {"name": "Uber", "passengers": 6}
+        response = client.post(request_start, payload)
+
+        assert response.status_code == 400
